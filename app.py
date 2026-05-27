@@ -5,10 +5,29 @@ app = Flask(__name__)
 app.secret_key = "mood-game-fixed-v2"
 
 # -----------------------------
-# GIFS
+# GIF SETS (MOOD PROGRESSION)
 # -----------------------------
-GIF_YES = "https://media1.tenor.com/m/uvpSJ-foSuQAAAAd/me-if-u-even-care.gif"
-GIF_NO = "https://media.tenor.com/7cdeCWXmOREAAAAm/bffr.webp"
+YES_GIFS = [
+    "https://media1.tenor.com/m/tuzl1hVGlIQAAAAC/sad-cat-sad-cat-meme.gif",
+    "https://media1.tenor.com/m/t9PLz06a24wAAAAC/sad-cat.gif",
+    "https://media1.tenor.com/m/vB-w7iKKQsMAAAAC/ohno.gif",
+    "https://media1.tenor.com/m/sQf0cT8G5soAAAAC/cat.gif",
+    "https://media1.tenor.com/m/ufPsZFFomo4AAAAd/crying-cat-sad-cat.gif",
+    "https://media1.tenor.com/m/I6WG5aQzlWcAAAAC/very-sad-cat-sad-cat.gif",
+    "https://media1.tenor.com/m/FmKyZJEcBUAAAAAd/depression-sad.gif",
+    "https://media1.tenor.com/m/X9pghVUlMvEAAAAC/sad-cat.gif"
+]
+
+NO_GIFS = [
+    "https://media1.tenor.com/m/t7WGV6oRYJEAAAAC/kitten-hearts.gif",
+    "https://media1.tenor.com/m/MKkJWYigjycAAAAC/cute-cat-cat-cute.gif",
+    "https://media1.tenor.com/m/bmxESZp93QYAAAAC/cute-staring-cat.gif",
+    "https://media1.tenor.com/m/islKHV6ibh0AAAAC/kitty-cat.gif",
+    "https://media1.tenor.com/m/OHCecCpu3KQAAAAC/meow.gif",
+    "https://media.tenor.com/rNNtJmAQN24AAAAi/calico-cat-cute.gif",
+    "https://media.tenor.com/GrwArHOkj3oAAAAi/100.gif",
+    "https://media.tenor.com/GrwArHOkj3oAAAAi/100.gif"
+]
 
 # -----------------------------
 # QUESTIONS
@@ -136,6 +155,10 @@ def get_activity(score):
     else:
         return "Fun activity / Date vibe 💖"
 
+def get_gif(is_positive, score):
+    index = min(7, max(0, score // 3))
+    return NO_GIFS[index] if is_positive else YES_GIFS[index]
+
 # -----------------------------
 # TEMPLATE
 # -----------------------------
@@ -146,109 +169,46 @@ TEMPLATE = """
 <title>Elin & Wengie Mood Game</title>
 
 <style>
-body {
-    font-family: Arial;
-    margin: 0;
-    background: #ffd6e7;
-    color: #1f2937;
-}
+body { font-family: Arial; margin: 0; background: #ffd6e7; color: #1f2937; }
 
 .topbar {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    width: 320px;
+    position: fixed; top: 15px; right: 15px; width: 320px;
 }
 
-.row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    gap: 10px;
-}
+.row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
 
-.label {
-    font-weight: bold;
-    font-size: 12px;
-    width: 150px;
-}
+.label { font-weight: bold; font-size: 12px; width: 150px; }
 
-.bar {
-    background: #fff;
-    height: 12px;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid #ddd;
-    flex: 1;
-}
+.bar { background: #fff; height: 12px; border-radius: 10px; overflow: hidden; border: 1px solid #ddd; flex: 1; }
 
-.fill {
-    height: 12px;
-    background: #22c55e;
-    transition: width 0.3s ease;
-}
+.fill { height: 12px; background: #22c55e; transition: width 0.3s ease; }
 
-.container {
-    max-width: 600px;
-    margin: 120px auto;
-    text-align: center;
-}
+.container { max-width: 600px; margin: 120px auto; text-align: center; }
 
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 15px;
-}
+.card { background: white; padding: 20px; border-radius: 15px; }
 
 button {
-    margin: 8px;
-    padding: 10px 15px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    background: #f472b6;
-    color: white;
-    font-weight: bold;
+    margin: 8px; padding: 10px 15px;
+    border-radius: 10px; border: none;
+    cursor: pointer; background: #f472b6;
+    color: white; font-weight: bold;
 }
 
-.reset {
-    background: #ef4444;
-}
+.reset { background: #ef4444; }
 </style>
-
 </head>
 
 <body>
 
 <div class="topbar">
-
-{% if first_yes %}
-
-<div class="row">
-    <div class="label">Elin's happiness</div>
-    <div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
-</div>
-
-<div class="row">
-    <div class="label">Wengie's panic level</div>
-    <div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
-</div>
-
-{% else %}
-
 <div class="row">
     <div class="label">Elin</div>
     <div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
 </div>
-
 <div class="row">
     <div class="label">Wengie</div>
     <div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
 </div>
-
-{% endif %}
-
 </div>
 
 <div class="container">
@@ -326,16 +286,13 @@ def index():
             options=None,
             elin=session["elin"],
             wengie=session["wengie"],
-            activity=activity,
-            first_yes=session["first_yes"],
-            gif=None
+            activity=activity
         )
 
     q = QUESTIONS[qid]
 
-    gif = None
-    if qid != "Q1":
-        gif = GIF_YES if session.get("first_yes") else GIF_NO
+    is_positive = not session.get("first_yes")  # No = happy path, Yes = sad path
+    gif = get_gif(is_positive, session["elin"])
 
     return render_template_string(
         TEMPLATE,
@@ -344,7 +301,6 @@ def index():
         elin=session["elin"],
         wengie=session["wengie"],
         activity=None,
-        first_yes=session["first_yes"],
         gif=gif
     )
 
@@ -354,7 +310,7 @@ def reset():
     return redirect(url_for("index"))
 
 # -----------------------------
-# RENDER ENTRY POINT
+# RENDER ENTRY
 # -----------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
