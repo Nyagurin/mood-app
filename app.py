@@ -204,14 +204,33 @@ button {
 <body>
 
 <div class="topbar">
+
+{% if first_yes %}
+
 <div class="row">
-    <div class="label">Elin</div>
+    <div class="label">Elin's happiness</div>
     <div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
 </div>
+
 <div class="row">
-    <div class="label">Wengie</div>
+    <div class="label">Wengie's stress level</div>
     <div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
 </div>
+
+{% else %}
+
+<div class="row">
+    <div class="label">Elin's happiness</div>
+    <div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
+</div>
+
+<div class="row">
+    <div class="label">Wengie's happiness</div>
+    <div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
+</div>
+
+{% endif %}
+
 </div>
 
 <div class="container">
