@@ -5,7 +5,7 @@ app = Flask(__name__)
 app.secret_key = "mood-game-fixed-v2"
 
 # -----------------------------
-# GIF SETS (MOOD PROGRESSION)
+# GIF SETS
 # -----------------------------
 YES_GIFS = [
     "https://media1.tenor.com/m/tuzl1hVGlIQAAAAC/sad-cat-sad-cat-meme.gif",
@@ -155,9 +155,12 @@ def get_activity(score):
     else:
         return "Fun activity / Date vibe 💖"
 
-def get_gif(is_positive, score):
-    index = min(7, max(0, score // 3))
-    return NO_GIFS[index] if is_positive else YES_GIFS[index]
+def get_gif(delta):
+    index = min(7, max(0, abs(delta)))
+    if delta >= 0:
+        return NO_GIFS[index]
+    else:
+        return YES_GIFS[index]
 
 # -----------------------------
 # TEMPLATE
@@ -257,6 +260,7 @@ def index():
         session["elin"] = 10
         session["wengie"] = 10
         session["first_yes"] = False
+        session["last_delta"] = 0
 
     qid = session["q"]
 
@@ -268,6 +272,8 @@ def index():
             return redirect(url_for("index"))
 
         effect = q["options"][choice]
+
+        session["last_delta"] = effect["elin"]
 
         session["elin"] = clamp(session["elin"] + effect["elin"])
         session["wengie"] = clamp(session["wengie"] + effect["wengie"])
@@ -291,8 +297,7 @@ def index():
 
     q = QUESTIONS[qid]
 
-    is_positive = not session.get("first_yes")  # No = happy path, Yes = sad path
-    gif = get_gif(is_positive, session["elin"])
+    gif = get_gif(session.get("last_delta", 0))
 
     return render_template_string(
         TEMPLATE,
