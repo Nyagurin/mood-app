@@ -2,7 +2,7 @@ from flask import Flask, render_template_string, request, redirect, url_for, ses
 import os
 
 app = Flask(__name__)
-app.secret_key = "mood-game-fixed-v3"
+app.secret_key = "mood-game-fixed-v4"
 
 # -----------------------------
 # GIF SETS
@@ -206,24 +206,24 @@ button {
 
 <div class="row">
     <div class="label">Elin's happiness</div>
-    <div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
+    <div class="bar"><div class="fill" style="width: {{ (elin|int * 5) if (elin|int * 5) <= 100 else 100 }}%"></div></div>
 </div>
 
 <div class="row">
     <div class="label">Wengie's stress level</div>
-    <div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
+    <div class="bar"><div class="fill" style="width: {{ (wengie|int * 5) if (wengie|int * 5) <= 100 else 100 }}%"></div></div>
 </div>
 
 {% else %}
 
 <div class="row">
     <div class="label">Elin's happiness</div>
-    <div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
+    <div class="bar"><div class="fill" style="width: {{ (elin|int * 5) if (elin|int * 5) <= 100 else 100 }}%"></div></div>
 </div>
 
 <div class="row">
     <div class="label">Wengie's happiness</div>
-    <div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
+    <div class="bar"><div class="fill" style="width: {{ (wengie|int * 5) if (wengie|int * 5) <= 100 else 100 }}%"></div></div>
 </div>
 
 {% endif %}
@@ -266,22 +266,24 @@ button {
 """
 
 # -----------------------------
-# ROUTE (STABLE VERSION)
+# ROUTE (STABLE + SAFE)
 # -----------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
 
-    # INIT ONLY ON NEW USER
+    # INIT ONLY ON FIRST VISIT
     if "q" not in session:
-        session["q"] = "Q1"
-        session["elin"] = 10
-        session["wengie"] = 10
-        session["first_yes"] = False
-        session["last_delta"] = 0
+        session.update({
+            "q": "Q1",
+            "elin": 10,
+            "wengie": 10,
+            "first_yes": False,
+            "last_delta": 0
+        })
 
     qid = session.get("q", "Q1")
 
-    # SAFETY CHECK (DO NOT OVERRESET)
+    # SAFE RECOVERY
     if qid not in QUESTIONS and qid != "END":
         qid = "Q1"
         session["q"] = "Q1"
@@ -297,6 +299,7 @@ def index():
 
         effect = q["options"][choice]
 
+        # HARD CLAMP SAFETY
         session["last_delta"] = effect["elin"]
         session["elin"] = clamp(session["elin"] + effect["elin"])
         session["wengie"] = clamp(session["wengie"] + effect["wengie"])
