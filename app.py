@@ -1,4 +1,5 @@
 from flask import Flask, render_template_string, request, redirect, url_for, session
+import os
 
 app = Flask(__name__)
 app.secret_key = "mood-game-fixed-v2"
@@ -290,6 +291,7 @@ button {
 # -----------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
+
     if not all(k in session for k in ["q", "elin", "wengie", "first_yes"]):
         session["q"] = "Q1"
         session["elin"] = 10
@@ -351,5 +353,9 @@ def reset():
     session.clear()
     return redirect(url_for("index"))
 
+# -----------------------------
+# RENDER ENTRY POINT
+# -----------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
