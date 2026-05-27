@@ -1,8 +1,11 @@
 from flask import Flask, render_template_string, request, redirect, url_for, session
 
 app = Flask(__name__)
-app.secret_key = "mood-game-secret"
+app.secret_key = "mood-game-fixed"
 
+# -----------------------------
+# QUESTIONS (COMPLETE SAFE TREE)
+# -----------------------------
 QUESTIONS = {
     "Q1": {
         "text": "Elin, are you mad or upset at Wengie?",
@@ -11,14 +14,17 @@ QUESTIONS = {
             "No": {"elin": +2, "wengie": +2, "next": "Q2N"}
         }
     },
+
+    # YES PATH
     "Q2Y": {
         "text": "How mad/upset are you, Elin?",
         "options": {
             "Slightly": {"elin": -1, "wengie": +1, "next": "Q3Y"},
             "Quite": {"elin": -2, "wengie": +2, "next": "Q3Y"},
-            "Very": {"elin": -4, "wengie": +4, "next": "Q3Y"}
+            "Very": {"elin": -3, "wengie": +3, "next": "Q3Y"}
         }
     },
+
     "Q3Y": {
         "text": "Do you want to talk it through with Wengie?",
         "options": {
@@ -26,6 +32,60 @@ QUESTIONS = {
             "No": {"elin": -1, "wengie": +2, "next": "Q4Y"}
         }
     },
+
+    "Q4Y": {
+        "text": "Do you know Wengie really loves you?",
+        "options": {
+            "Yes": {"elin": +3, "wengie": -2, "next": "Q5Y"},
+            "Hmmph": {"elin": -1, "wengie": +1, "next": "Q5Y"}
+        }
+    },
+
+    "Q5Y": {
+        "text": "What made you upset?",
+        "options": {
+            "Forgot something": {"elin": -1, "wengie": +1, "next": "Q6Y"},
+            "Didn't listen": {"elin": -2, "wengie": +2, "next": "Q6Y"},
+            "Other": {"elin": -1, "wengie": +1, "next": "Q6Y"}
+        }
+    },
+
+    "Q6Y": {
+        "text": "Do you still love Wengie?",
+        "options": {
+            "Yes": {"elin": +3, "wengie": -3, "next": "Q7Y"},
+            "No": {"elin": -4, "wengie": +4, "next": "Q7Y"},
+            "IDK": {"elin": -1, "wengie": +2, "next": "Q7Y"}
+        }
+    },
+
+    "Q7Y": {
+        "text": "Will you forgive Wengie?",
+        "options": {
+            "Yes": {"elin": +4, "wengie": -3, "next": "END"},
+            "No": {"elin": -3, "wengie": +3, "next": "END"},
+            "Maybe": {"elin": +1, "wengie": +1, "next": "END"}
+        }
+    },
+
+    # NO PATH
+    "Q2N": {
+        "text": "Was Wengie a good boyfriend today?",
+        "options": {
+            "Average": {"elin": 0, "wengie": 0, "next": "Q3N"},
+            "Yes": {"elin": +2, "wengie": +2, "next": "Q3N"},
+            "Very": {"elin": +3, "wengie": +3, "next": "Q3N"}
+        }
+    },
+
+    "Q3N": {
+        "text": "Did Wengie forget something today?",
+        "options": {
+            "Yes": {"elin": -2, "wengie": -2, "next": "Q4N"},
+            "No": {"elin": +1, "wengie": +1, "next": "Q4N"}
+        }
+    },
+
     "Q4N": {
         "text": "How happy are you right now, Elin?",
         "options": {
@@ -34,24 +94,46 @@ QUESTIONS = {
             "Not very": {"elin": -4, "wengie": -2, "next": "Q5N"}
         }
     },
+
+    "Q5N": {
+        "text": "Are you stressed about anything?",
+        "options": {
+            "Yes": {"elin": -2, "wengie": -1, "next": "Q6N"},
+            "No": {"elin": +2, "wengie": +1, "next": "Q6N"}
+        }
+    },
+
+    "Q6N": {
+        "text": "How much do you love Wengie right now?",
+        "options": {
+            "A lot": {"elin": +3, "wengie": +3, "next": "END"},
+            "Moderate": {"elin": +1, "wengie": +1, "next": "END"},
+            "Little": {"elin": -3, "wengie": -2, "next": "END"}
+        }
+    }
 }
 
+# -----------------------------
+# HELPERS
+# -----------------------------
 def clamp(v):
     return max(0, min(20, v))
 
 def get_activity(score):
     if score <= 4:
-        return "Talk / Give space / Comfort Elin"
+        return "Talk / Give space"
     elif score <= 8:
-        return "Talk / Watch something together"
+        return "Talk / Watch something"
     elif score <= 12:
-        return "Watch something / Study together"
+        return "Watch / Study together"
     elif score <= 16:
-        return "Gaming / Chill together"
+        return "Gaming / Chill"
     else:
-        return "Gaming / Fun activity / Date vibe 💖"
+        return "Fun activity / Date vibe 💖"
 
-# ---------------- UI ----------------
+# -----------------------------
+# UI
+# -----------------------------
 TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -62,7 +144,7 @@ TEMPLATE = """
 body {
     font-family: Arial;
     margin: 0;
-    background: #ffd6e7; /* 💗 light pink */
+    background: #ffd6e7;
     color: #1f2937;
 }
 
@@ -75,20 +157,21 @@ body {
 
 .label {
     font-weight: bold;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 .bar {
-    background: #f3f4f6;
+    background: #fff;
     height: 12px;
     border-radius: 10px;
     overflow: hidden;
+    border: 1px solid #ddd;
 }
 
 .fill {
     height: 12px;
-    background: #22c55e; /* 🟢 green */
-    transition: width 0.4s ease;
+    background: #22c55e;
+    transition: width 0.3s ease;
 }
 
 .container {
@@ -101,7 +184,6 @@ body {
     background: white;
     padding: 20px;
     border-radius: 15px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 button {
@@ -129,30 +211,17 @@ button {
 {% if first_yes %}
 
 <div class="label">Elin's happiness: {{elin}}/20</div>
-
-{% else %}
-
-<div class="label">Elin: {{elin}}/20</div>
-
-{% endif %}
-
-<div class="bar">
-<div class="fill" style="width: {{elin*5}}%"></div>
-</div>
-
-{% if first_yes %}
-
 <div class="label">Wengie's panic level: {{wengie}}/20</div>
 
 {% else %}
 
+<div class="label">Elin: {{elin}}/20</div>
 <div class="label">Wengie: {{wengie}}/20</div>
 
 {% endif %}
 
-<div class="bar">
-<div class="fill" style="width: {{wengie*5}}%"></div>
-</div>
+<div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
+<div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
 
 </div>
 
@@ -172,7 +241,7 @@ button {
 
 {% else %}
 
-<h2>Result for Elin & Wengie 💖</h2>
+<h2>Final Result 💖</h2>
 <h3>{{activity}}</h3>
 
 <form action="/reset">
@@ -188,6 +257,9 @@ button {
 </html>
 """
 
+# -----------------------------
+# ROUTES
+# -----------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     if "q" not in session:
@@ -197,6 +269,11 @@ def index():
         session["first_yes"] = False
 
     qid = session["q"]
+
+    # SAFE GUARD (prevents crashes like before)
+    if qid not in QUESTIONS and qid != "END":
+        session["q"] = "Q1"
+        qid = "Q1"
 
     if request.method == "POST":
         choice = request.form["choice"]
@@ -221,7 +298,7 @@ def index():
             elin=session["elin"],
             wengie=session["wengie"],
             activity=activity,
-            first_yes=session.get("first_yes", False)
+            first_yes=session["first_yes"]
         )
 
     q = QUESTIONS[qid]
@@ -233,7 +310,7 @@ def index():
         elin=session["elin"],
         wengie=session["wengie"],
         activity=None,
-        first_yes=session.get("first_yes", False)
+        first_yes=session["first_yes"]
     )
 
 @app.route("/reset")
