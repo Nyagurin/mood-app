@@ -1,10 +1,16 @@
 from flask import Flask, render_template_string, request, redirect, url_for, session
 
 app = Flask(__name__)
-app.secret_key = "mood-game-fixed"
+app.secret_key = "mood-game-fixed-v2"
 
 # -----------------------------
-# QUESTIONS (COMPLETE SAFE TREE)
+# GIFS
+# -----------------------------
+GIF_YES = "https://media1.tenor.com/m/uvpSJ-foSuQAAAAd/me-if-u-even-care.gif"
+GIF_NO = "https://media.tenor.com/7cdeCWXmOREAAAAm/bffr.webp"
+
+# -----------------------------
+# QUESTIONS
 # -----------------------------
 QUESTIONS = {
     "Q1": {
@@ -15,7 +21,6 @@ QUESTIONS = {
         }
     },
 
-    # YES PATH
     "Q2Y": {
         "text": "How mad/upset are you, Elin?",
         "options": {
@@ -68,7 +73,6 @@ QUESTIONS = {
         }
     },
 
-    # NO PATH
     "Q2N": {
         "text": "Was Wengie a good boyfriend today?",
         "options": {
@@ -132,7 +136,7 @@ def get_activity(score):
         return "Fun activity / Date vibe 💖"
 
 # -----------------------------
-# UI
+# TEMPLATE
 # -----------------------------
 TEMPLATE = """
 <!DOCTYPE html>
@@ -152,12 +156,21 @@ body {
     position: fixed;
     top: 15px;
     right: 15px;
-    width: 260px;
+    width: 320px;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 10px;
 }
 
 .label {
     font-weight: bold;
-    margin-top: 8px;
+    font-size: 12px;
+    width: 150px;
 }
 
 .bar {
@@ -166,6 +179,7 @@ body {
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid #ddd;
+    flex: 1;
 }
 
 .fill {
@@ -210,18 +224,29 @@ button {
 
 {% if first_yes %}
 
-<div class="label">Elin's happiness: {{elin}}/20</div>
-<div class="label">Wengie's panic level: {{wengie}}/20</div>
+<div class="row">
+    <div class="label">Elin's happiness</div>
+    <div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
+</div>
+
+<div class="row">
+    <div class="label">Wengie's panic level</div>
+    <div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
+</div>
 
 {% else %}
 
-<div class="label">Elin: {{elin}}/20</div>
-<div class="label">Wengie: {{wengie}}/20</div>
+<div class="row">
+    <div class="label">Elin</div>
+    <div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
+</div>
+
+<div class="row">
+    <div class="label">Wengie</div>
+    <div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
+</div>
 
 {% endif %}
-
-<div class="bar"><div class="fill" style="width: {{elin*5}}%"></div></div>
-<div class="bar"><div class="fill" style="width: {{wengie*5}}%"></div></div>
 
 </div>
 
@@ -230,14 +255,17 @@ button {
 
 {% if question %}
 
+{% if gif %}
+<img src="{{ gif }}" style="max-width:100%; border-radius:12px; margin-bottom:15px;">
+{% endif %}
+
 <h2>{{question}}</h2>
 
-{% for opt in options %}
 <form method="POST">
-<input type="hidden" name="choice" value="{{opt}}">
-<button>{{opt}}</button>
-</form>
+{% for opt in options %}
+<button name="choice" value="{{opt}}">{{opt}}</button>
 {% endfor %}
+</form>
 
 {% else %}
 
@@ -262,7 +290,7 @@ button {
 # -----------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
-    if "q" not in session:
+    if not all(k in session for k in ["q", "elin", "wengie", "first_yes"]):
         session["q"] = "Q1"
         session["elin"] = 10
         session["wengie"] = 10
@@ -270,22 +298,21 @@ def index():
 
     qid = session["q"]
 
-    # SAFE GUARD (prevents crashes like before)
-    if qid not in QUESTIONS and qid != "END":
-        session["q"] = "Q1"
-        qid = "Q1"
-
     if request.method == "POST":
-        choice = request.form["choice"]
+        choice = request.form.get("choice")
         q = QUESTIONS[qid]
+
+        if choice not in q["options"]:
+            return redirect(url_for("index"))
+
         effect = q["options"][choice]
 
         session["elin"] = clamp(session["elin"] + effect["elin"])
         session["wengie"] = clamp(session["wengie"] + effect["wengie"])
         session["q"] = effect["next"]
 
-        if qid == "Q1" and choice == "Yes":
-            session["first_yes"] = True
+        if qid == "Q1":
+            session["first_yes"] = (choice == "Yes")
 
         return redirect(url_for("index"))
 
@@ -298,10 +325,15 @@ def index():
             elin=session["elin"],
             wengie=session["wengie"],
             activity=activity,
-            first_yes=session["first_yes"]
+            first_yes=session["first_yes"],
+            gif=None
         )
 
     q = QUESTIONS[qid]
+
+    gif = None
+    if qid != "Q1":
+        gif = GIF_YES if session.get("first_yes") else GIF_NO
 
     return render_template_string(
         TEMPLATE,
@@ -310,7 +342,8 @@ def index():
         elin=session["elin"],
         wengie=session["wengie"],
         activity=None,
-        first_yes=session["first_yes"]
+        first_yes=session["first_yes"],
+        gif=gif
     )
 
 @app.route("/reset")
