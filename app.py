@@ -153,7 +153,7 @@ def get_activity(score):
     elif score <= 16:
         return "Gaming / Chill"
     else:
-        return "Fun activity / Date vibe 💖"
+        return "Fun activity / Gaming / Watch something 💖"
 
 def get_gif(delta):
     index = min(7, max(0, abs(delta)))
@@ -266,12 +266,14 @@ button {
 """
 
 # -----------------------------
-# ROUTES
+# ROUTE (FULLY SAFE)
 # -----------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
 
-    if not all(k in session for k in ["q", "elin", "wengie", "first_yes"]):
+    # SAFE INIT / RECOVERY
+    if "q" not in session or session.get("q") not in QUESTIONS:
+        session.clear()
         session["q"] = "Q1"
         session["elin"] = 10
         session["wengie"] = 10
@@ -281,8 +283,12 @@ def index():
     qid = session["q"]
 
     if request.method == "POST":
+        q = QUESTIONS.get(qid)
+        if not q:
+            session.clear()
+            return redirect(url_for("index"))
+
         choice = request.form.get("choice")
-        q = QUESTIONS[qid]
 
         if choice not in q["options"]:
             return redirect(url_for("index"))
@@ -290,7 +296,6 @@ def index():
         effect = q["options"][choice]
 
         session["last_delta"] = effect["elin"]
-
         session["elin"] = clamp(session["elin"] + effect["elin"])
         session["wengie"] = clamp(session["wengie"] + effect["wengie"])
         session["q"] = effect["next"]
@@ -300,6 +305,7 @@ def index():
 
         return redirect(url_for("index"))
 
+    # FINAL STATE
     if qid == "END":
         activity = get_activity(session["elin"])
         return render_template_string(
@@ -333,7 +339,7 @@ def reset():
     return redirect(url_for("index"))
 
 # -----------------------------
-# RENDER ENTRY
+# RENDER ENTRY POINT
 # -----------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
