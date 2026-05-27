@@ -2,7 +2,7 @@ from flask import Flask, render_template_string, request, redirect, url_for, ses
 import os
 
 app = Flask(__name__)
-app.secret_key = "mood-game-final-safe-v1"
+app.secret_key = "mood-game-final-v2"
 
 # -----------------------------
 # GIF SETS
@@ -153,14 +153,14 @@ def get_activity(score):
     elif score <= 16:
         return "Gaming / Chill"
     else:
-        return "Fun activity / Gaming / Watch 💖"
+        return "Fun activity / Date vibe 💖"
 
 def get_gif(delta):
     i = min(7, max(0, abs(delta)))
     return NO_GIFS[i] if delta >= 0 else YES_GIFS[i]
 
 # -----------------------------
-# TEMPLATE (SAFE - NO INLINE MATH)
+# TEMPLATE
 # -----------------------------
 TEMPLATE = """
 <!DOCTYPE html>
@@ -171,9 +171,7 @@ TEMPLATE = """
 <style>
 body { font-family: Arial; margin: 0; background: #ffd6e7; color: #1f2937; }
 
-.topbar {
-    position: fixed; top: 15px; right: 15px; width: 320px;
-}
+.topbar { position: fixed; top: 15px; right: 15px; width: 320px; }
 
 .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
 
@@ -203,7 +201,7 @@ button {
 <div class="topbar">
 
 <div class="row">
-    <div class="label">{{ elin_label }}</div>
+    <div class="label">Elin's happiness</div>
     <div class="bar"><div class="fill" style="width: {{ elin_bar }}%"></div></div>
 </div>
 
@@ -281,11 +279,8 @@ def index():
 
         effect = q["options"][choice]
 
-        new_elin = clamp(session["elin"] + effect["elin"])
-        new_wengie = clamp(session["wengie"] + effect["wengie"])
-
-        session["elin"] = new_elin
-        session["wengie"] = new_wengie
+        session["elin"] = clamp(session["elin"] + effect["elin"])
+        session["wengie"] = clamp(session["wengie"] + effect["wengie"])
         session["last_delta"] = effect["elin"]
         session["q"] = effect["next"]
 
@@ -294,7 +289,11 @@ def index():
 
         return redirect(url_for("index"))
 
+    # FINAL SCREEN FIX (your requested behavior preserved)
     if qid == "END":
+
+        wengie_label = "Wengie's stress level" if session.get("first_yes") else "Wengie's happiness"
+
         return render_template_string(
             TEMPLATE,
             question=None,
@@ -302,10 +301,8 @@ def index():
             activity=get_activity(session["elin"]),
             elin_bar=min(100, session["elin"] * 5),
             wengie_bar=min(100, session["wengie"] * 5),
-            elin_label="Elin's happiness",
-            wengie_label="Wengie's happiness",
-            gif=None,
-            first_yes=session["first_yes"]
+            wengie_label=wengie_label,
+            gif=None
         )
 
     q = QUESTIONS[qid]
@@ -317,10 +314,8 @@ def index():
         activity=None,
         elin_bar=min(100, session["elin"] * 5),
         wengie_bar=min(100, session["wengie"] * 5),
-        elin_label="Elin's happiness",
         wengie_label="Wengie's stress level" if session.get("first_yes") else "Wengie's happiness",
-        gif=get_gif(session["last_delta"]),
-        first_yes=session["first_yes"]
+        gif=get_gif(session["last_delta"])
     )
 
 @app.route("/reset")
