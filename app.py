@@ -153,7 +153,7 @@ def get_activity(score):
     elif score <= 16:
         return "Gaming / Chill"
     else:
-        return "Fun activity / Date vibe 💖"
+        return "Fun activity / Gaming / Watch 💖"
 
 def get_gif(delta):
     i = min(7, max(0, abs(delta)))
