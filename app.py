@@ -153,14 +153,11 @@ def get_activity(score):
     elif score <= 16:
         return "Gaming / Chill"
     else:
-        return "Fun activity / Gaming / Watch smtg 💖"
+        return "Fun activity / Date vibe 💖"
 
 def get_gif(delta):
     index = min(7, max(0, abs(delta)))
-    if delta >= 0:
-        return NO_GIFS[index]
-    else:
-        return YES_GIFS[index]
+    return NO_GIFS[index] if delta >= 0 else YES_GIFS[index]
 
 # -----------------------------
 # TEMPLATE
@@ -311,7 +308,8 @@ def index():
             options=None,
             elin=session["elin"],
             wengie=session["wengie"],
-            activity=activity
+            activity=activity,
+            first_yes=session["first_yes"]
         )
 
     q = QUESTIONS[qid]
@@ -325,7 +323,8 @@ def index():
         elin=session["elin"],
         wengie=session["wengie"],
         activity=None,
-        gif=gif
+        gif=gif,
+        first_yes=session["first_yes"]
     )
 
 @app.route("/reset")
