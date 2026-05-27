@@ -2,7 +2,7 @@ from flask import Flask, render_template_string, request, redirect, url_for, ses
 import os
 
 app = Flask(__name__)
-app.secret_key = "mood-game-fixed-v2"
+app.secret_key = "mood-game-fixed-v3"
 
 # -----------------------------
 # GIF SETS
@@ -153,7 +153,7 @@ def get_activity(score):
     elif score <= 16:
         return "Gaming / Chill"
     else:
-        return "Fun activity / Gaming / Watch something 💖"
+        return "Fun activity / Gaming / Watch 💖"
 
 def get_gif(delta):
     index = min(7, max(0, abs(delta)))
@@ -266,30 +266,32 @@ button {
 """
 
 # -----------------------------
-# ROUTE (FULLY SAFE)
+# ROUTE (STABLE VERSION)
 # -----------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
 
-    # SAFE INIT / RECOVERY
-    if "q" not in session or session.get("q") not in QUESTIONS:
-        session.clear()
+    # INIT ONLY ON NEW USER
+    if "q" not in session:
         session["q"] = "Q1"
         session["elin"] = 10
         session["wengie"] = 10
         session["first_yes"] = False
         session["last_delta"] = 0
 
-    qid = session["q"]
+    qid = session.get("q", "Q1")
+
+    # SAFETY CHECK (DO NOT OVERRESET)
+    if qid not in QUESTIONS and qid != "END":
+        qid = "Q1"
+        session["q"] = "Q1"
 
     if request.method == "POST":
         q = QUESTIONS.get(qid)
         if not q:
-            session.clear()
             return redirect(url_for("index"))
 
         choice = request.form.get("choice")
-
         if choice not in q["options"]:
             return redirect(url_for("index"))
 
@@ -305,7 +307,6 @@ def index():
 
         return redirect(url_for("index"))
 
-    # FINAL STATE
     if qid == "END":
         activity = get_activity(session["elin"])
         return render_template_string(
@@ -319,7 +320,6 @@ def index():
         )
 
     q = QUESTIONS[qid]
-
     gif = get_gif(session.get("last_delta", 0))
 
     return render_template_string(
@@ -339,7 +339,7 @@ def reset():
     return redirect(url_for("index"))
 
 # -----------------------------
-# RENDER ENTRY POINT
+# RUN
 # -----------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
